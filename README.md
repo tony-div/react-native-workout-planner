@@ -5,7 +5,7 @@ TypeScript package for generating highly personalized resistance training plans,
 - React Native client apps (`@react-native-workout-planner/client`)
 - Node.js/Express servers (`@react-native-workout-planner/server`)
 
-The server side uses Gemini (`gemini-3.1-pro-preview`) and strict JSON output rules to produce structured workout plans.
+The server side uses Gemma (`gemma-4-31b-it`) and strict JSON output rules to produce structured workout plans.
 
 ## Table of contents
 
@@ -29,8 +29,8 @@ The server side uses Gemini (`gemini-3.1-pro-preview`) and strict JSON output ru
 - Strong TypeScript interfaces for requests/plans.
 - Request normalization and defaults (goal, level, equipment, demographics, etc.).
 - Express middleware factory: `createWorkoutHandler(config)`.
-- Gemini integration with:
-  - required model `gemini-3.1-pro-preview`
+- Gemma integration with:
+  - required model `gemma-4-31b-it`
   - JSON-only output (`responseMimeType: application/json`)
   - schema-guided response validation
 - Typed React Native fetch wrapper: `generatePlan(clientConfig, requestData)`.
@@ -68,16 +68,22 @@ You can install the prebuilt client/server release tarballs directly from a GitH
 Server bundle:
 
 ```bash
-npm install "https://github.com/tony-div/react-native-workout-planner/releases/download/v0.1.0/workout-planner-server-v0.1.0.tar.gz"
+npm install "https://github.com/tony-div/react-native-workout-planner/releases/download/v0.1.1/workout-planner-server-v0.1.1.tar.gz"
 ```
 
 Client bundle:
 
 ```bash
-npm install "https://github.com/tony-div/react-native-workout-planner/releases/download/v0.1.0/workout-planner-client-v0.1.0.tar.gz"
+npm install "https://github.com/tony-div/react-native-workout-planner/releases/download/v0.1.1/workout-planner-client-v0.1.1.tar.gz"
 ```
 
-Use the same URL pattern for newer versions by changing the tag and filename (for example `v0.1.1`).
+You can also download the React Native example app release bundle:
+
+```bash
+curl -L -o workout-planner-example-v0.1.1.tar.gz "https://github.com/tony-div/react-native-workout-planner/releases/download/v0.1.1/workout-planner-example-v0.1.1.tar.gz"
+```
+
+Use the same URL pattern for newer versions by changing the tag and filename.
 
 ### Imports
 
@@ -134,7 +140,7 @@ Server behavior:
 
 1. Validates + normalizes incoming `WorkoutRequest`.
 2. Builds a strict prompt with inter-set recovery and overload rules.
-3. Calls Gemini model `gemini-3.1-pro-preview`.
+3. Calls Gemma model `gemma-4-31b-it`.
 4. Requires JSON response, parses and validates shape.
 5. Returns `WorkoutPlan` JSON to client.
 
@@ -213,6 +219,7 @@ What it does:
 5. Packages release binaries:
    - `workout-planner-client-<tag>.tar.gz`
    - `workout-planner-server-<tag>.tar.gz`
+   - `workout-planner-example-<tag>.tar.gz`
 6. Uploads binaries as workflow artifacts
 7. On `release.published` or manual dispatch, uploads binaries to the target GitHub release
 
@@ -220,7 +227,7 @@ Manual upload for an existing release tag:
 
 1. Go to **Actions**
 2. Run **CI and Release Assets** workflow
-3. Enter `tag` (for example `v0.1.0`)
+3. Enter `tag` (for example `v0.1.1`)
 
 ## Contributing
 
@@ -249,7 +256,7 @@ npm run build
 
 ### Tests
 
-- `core/tests/server-handler.test.ts` covers Express + Gemini handler flow
+- `core/tests/server-handler.test.ts` covers Express + Gemma handler flow
 - `core/tests/plan-generator.test.ts` covers plan parsing and validation failures
 - `core/tests/client.test.ts` covers client fetch success/error handling
 
@@ -262,4 +269,4 @@ npm run build
 - `No fetch implementation found`:
   - Pass `fetchImpl` in `ClientConfig` for non-standard runtime/test environments.
 - Invalid JSON model errors:
-  - Check Gemini response logs and ensure server prompt/schema has not been modified incorrectly.
+  - Check Gemma response logs and ensure server prompt/schema has not been modified incorrectly.

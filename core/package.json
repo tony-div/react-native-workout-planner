@@ -1,6 +1,6 @@
 {
   "name": "@react-native-workout-planner",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Personalized resistance training planner for React Native clients and Node servers",
   "main": "./dist/server/index.js",
   "types": "./dist/server/index.d.ts",
@@ -32,6 +32,7 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
+    "@babel/runtime": "^7.25.0",
     "@google/generative-ai": "^0.21.0"
   },
   "devDependencies": {

@@ -37,6 +37,9 @@ jobs:
         working-directory: core
         run: npm ci
 
+      - name: Install example dependencies
+        run: npm ci --prefix example
+
       - name: Lint
         working-directory: core
         run: npm run lint
@@ -49,6 +52,13 @@ jobs:
         working-directory: core
         run: npm run build
 
+      - name: Build example release bundles
+        run: |
+          mkdir -p release-assets/tmp/example/android release-assets/tmp/example/ios
+          npm --prefix example run prepare:core
+          npx --prefix example react-native bundle --platform android --dev false --entry-file index.js --bundle-output release-assets/tmp/example/android/index.android.bundle --assets-dest release-assets/tmp/example/android
+          npx --prefix example react-native bundle --platform ios --dev false --entry-file index.js --bundle-output release-assets/tmp/example/ios/main.jsbundle --assets-dest release-assets/tmp/example/ios
+
       - name: Smoke-test built client/server bundles
         run: |
           node -e "const client = require('./core/dist/client/index.js'); if (typeof client.generatePlan !== 'function') { throw new Error('generatePlan export missing'); }"
@@ -58,9 +68,63 @@ jobs:
         env:
           RELEASE_TAG: ${{ github.event.release.tag_name || github.event.inputs.tag || format('snapshot-{0}', github.sha) }}
         run: |
+          VERSION="$(node -p \"require('./core/package.json').version\")"
           mkdir -p release-assets
-          tar -czf "release-assets/workout-planner-client-${RELEASE_TAG}.tar.gz" -C core dist/client
-          tar -czf "release-assets/workout-planner-server-${RELEASE_TAG}.tar.gz" -C core dist/server
+          mkdir -p release-assets/tmp/client/package/dist release-assets/tmp/server/package/dist
+
+          cp -r core/dist/client release-assets/tmp/client/package/dist/
+          cp -r core/dist/shared release-assets/tmp/client/package/dist/
+          cp -r core/dist/server release-assets/tmp/server/package/dist/
+          cp -r core/dist/shared release-assets/tmp/server/package/dist/
+
+          cat > release-assets/tmp/client/package/package.json <<EOF
+          {
+            "name": "@react-native-workout-planner/client",
+            "version": "${VERSION}",
+            "description": "Client bundle for React Native workout planner",
+            "main": "./dist/client/index.js",
+            "types": "./dist/client/index.d.ts",
+            "files": ["dist"]
+          }
+          EOF
+
+          cat > release-assets/tmp/server/package/package.json <<EOF
+          {
+            "name": "@react-native-workout-planner/server",
+            "version": "${VERSION}",
+            "description": "Server bundle for React Native workout planner",
+            "main": "./dist/server/index.js",
+            "types": "./dist/server/index.d.ts",
+            "bin": {
+              "workout-planner-init": "./dist/server/cli.js"
+            },
+            "files": ["dist"],
+            "dependencies": {
+              "@google/generative-ai": "^0.21.0"
+            }
+          }
+          EOF
+
+          tar -czf "release-assets/workout-planner-client-${RELEASE_TAG}.tar.gz" -C release-assets/tmp/client package
+          tar -czf "release-assets/workout-planner-server-${RELEASE_TAG}.tar.gz" -C release-assets/tmp/server package
+          tar -czf "release-assets/workout-planner-example-${RELEASE_TAG}.tar.gz" -C release-assets/tmp example
+
+      - name: Smoke-test packaged tarballs via npm install
+        env:
+          RELEASE_TAG: ${{ github.event.release.tag_name || github.event.inputs.tag || format('snapshot-{0}', github.sha) }}
+        run: |
+          CLIENT_TARBALL="$(pwd)/release-assets/workout-planner-client-${RELEASE_TAG}.tar.gz"
+          SERVER_TARBALL="$(pwd)/release-assets/workout-planner-server-${RELEASE_TAG}.tar.gz"
+
+          mkdir -p release-assets/smoke/client release-assets/smoke/server
+          npm init -y --prefix release-assets/smoke/client
+          npm init -y --prefix release-assets/smoke/server
+
+          npm install --prefix release-assets/smoke/client "$CLIENT_TARBALL"
+          npm install --prefix release-assets/smoke/server "$SERVER_TARBALL"
+
+          node -e "const client = require('./release-assets/smoke/client/node_modules/@react-native-workout-planner/client'); if (typeof client.generatePlan !== 'function') { throw new Error('client tarball missing generatePlan export'); }"
+          node -e "const server = require('./release-assets/smoke/server/node_modules/@react-native-workout-planner/server'); if (typeof server.createWorkoutHandler !== 'function') { throw new Error('server tarball missing createWorkoutHandler export'); }"
 
       - name: Upload CI artifacts
         uses: actions/upload-artifact@v4

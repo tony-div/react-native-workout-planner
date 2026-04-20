@@ -1,11 +1,35 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import type { ResponseSchema } from '@google/generative-ai';
 
 import { normalizeWorkoutRequest } from '../shared/normalize';
 import { isWorkoutPlan, planResponseSchemaText } from '../shared/schemas';
 import type { ServerConfig, WorkoutPlan, WorkoutRequest } from '../shared/types';
 import { buildSystemPrompt } from './prompt';
 
-const GEMINI_MODEL = 'gemini-3.1-pro-preview';
+const GEMINI_MODEL = 'gemma-4-31b-it';
+
+function stripUnsupportedResponseSchemaFields(value: unknown): unknown {
+  if (Array.isArray(value)) {
+    return value.map(stripUnsupportedResponseSchemaFields);
+  }
+
+  if (value && typeof value === 'object') {
+    const next: Record<string, unknown> = {};
+    for (const [key, child] of Object.entries(value)) {
+      if (key === 'additionalProperties') {
+        continue;
+      }
+      next[key] = stripUnsupportedResponseSchemaFields(child);
+    }
+    return next;
+  }
+
+  return value;
+}
+
+function toGeminiResponseSchema(value: string): ResponseSchema {
+  return stripUnsupportedResponseSchemaFields(JSON.parse(value)) as ResponseSchema;
+}
 
 function extractTextContent(response: unknown): string {
   const typed = response as {
@@ -67,7 +91,7 @@ export function createPlanGenerator(config: ServerConfig) {
       contents: [{ role: 'user', parts: [{ text: prompt }] }],
       generationConfig: {
         responseMimeType: 'application/json',
-        responseSchema: JSON.parse(planResponseSchemaText),
+        responseSchema: toGeminiResponseSchema(planResponseSchemaText),
       },
     });
 

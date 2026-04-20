@@ -1,5 +1,3 @@
-export type PrimaryGoal = 'hypertrophy' | 'strength' | 'general_fitness';
-
 export type TrainingLevel = 'beginner' | 'intermediate' | 'advanced';
 
 export interface Demographics {
@@ -43,7 +41,7 @@ export interface ProgressiveOverloadRule {
 
 export interface WorkoutPlan {
   planName: string;
-  primaryGoal: PrimaryGoal;
+  primaryGoal: string;
   trainingLevel: TrainingLevel;
   daysPerWeek: number;
   durationWeeks: number | null;
@@ -54,7 +52,7 @@ export interface WorkoutPlan {
 }
 
 export interface WorkoutRequest {
-  primaryGoal?: 'hypertrophy' | 'strength';
+  primaryGoal?: string;
   trainingLevel?: TrainingLevel;
   daysPerWeek: number;
   programDurationWeeks?: number;
@@ -72,7 +70,7 @@ export interface WorkoutRequest {
 }
 
 export interface NormalizedWorkoutRequest {
-  primaryGoal: PrimaryGoal;
+  primaryGoal: string;
   trainingLevel: TrainingLevel;
   daysPerWeek: number;
   programDurationWeeks: number | null;
