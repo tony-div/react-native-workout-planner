@@ -1,0 +1,101 @@
+export type PrimaryGoal = 'hypertrophy' | 'strength' | 'general_fitness';
+
+export type TrainingLevel = 'beginner' | 'intermediate' | 'advanced';
+
+export interface Demographics {
+  gender?: string;
+  bodyWeight?: number;
+  age?: number;
+  trainingAge: number;
+}
+
+export interface Limitations {
+  injuries?: string[];
+  mobilityDifficulties?: string[];
+}
+
+export interface WorkoutSet {
+  setNumber: number;
+  reps: number;
+  targetWeightKg: number | null;
+  targetRpe: number;
+  restSeconds: number;
+}
+
+export interface ExercisePrescription {
+  exerciseName: string;
+  equipment: string;
+  notes?: string;
+  sets: WorkoutSet[];
+}
+
+export interface WorkoutDay {
+  dayLabel: string;
+  focus: string;
+  warmup?: string[];
+  exercises: ExercisePrescription[];
+}
+
+export interface ProgressiveOverloadRule {
+  ruleName: string;
+  description: string;
+}
+
+export interface WorkoutPlan {
+  planName: string;
+  primaryGoal: PrimaryGoal;
+  trainingLevel: TrainingLevel;
+  daysPerWeek: number;
+  durationWeeks: number | null;
+  rationale: string;
+  interSetRecoveryPolicy: string;
+  progressiveOverload: ProgressiveOverloadRule[];
+  days: WorkoutDay[];
+}
+
+export interface WorkoutRequest {
+  primaryGoal?: 'hypertrophy' | 'strength';
+  trainingLevel?: TrainingLevel;
+  daysPerWeek: number;
+  programDurationWeeks?: number;
+  equipmentAvailable?: string[];
+  demographics?: {
+    gender?: string;
+    bodyWeight?: number;
+    age?: number;
+    trainingAge?: number;
+  };
+  limitations?: Limitations;
+  currentRPE?: number;
+  currentPlan?: WorkoutPlan;
+  naturalLanguageRequest?: string;
+}
+
+export interface NormalizedWorkoutRequest {
+  primaryGoal: PrimaryGoal;
+  trainingLevel: TrainingLevel;
+  daysPerWeek: number;
+  programDurationWeeks: number | null;
+  equipmentAvailable: string[];
+  demographics: Demographics;
+  limitations: Limitations;
+  currentRPE?: number;
+  currentPlan?: WorkoutPlan;
+  naturalLanguageRequest?: string;
+}
+
+export interface ServerConfig {
+  geminiApiKey: string;
+}
+
+export interface ClientConfig {
+  apiBaseUrl: string;
+  endpointPath?: string;
+  fetchImpl?: typeof fetch;
+  headers?: Record<string, string>;
+}
+
+export interface ErrorResponse {
+  error: string;
+  details?: unknown;
+}
