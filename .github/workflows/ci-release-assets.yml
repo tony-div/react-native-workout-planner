@@ -1,0 +1,87 @@
+name: CI and Release Assets
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+  release:
+    types:
+      - published
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Existing release tag to upload assets to (example: v0.1.0)"
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  build-test-package:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: core/package-lock.json
+
+      - name: Install dependencies
+        working-directory: core
+        run: npm ci
+
+      - name: Lint
+        working-directory: core
+        run: npm run lint
+
+      - name: Test
+        working-directory: core
+        run: npm test
+
+      - name: Build
+        working-directory: core
+        run: npm run build
+
+      - name: Smoke-test built client/server bundles
+        run: |
+          node -e "const client = require('./core/dist/client/index.js'); if (typeof client.generatePlan !== 'function') { throw new Error('generatePlan export missing'); }"
+          node -e "const server = require('./core/dist/server/index.js'); if (typeof server.createWorkoutHandler !== 'function') { throw new Error('createWorkoutHandler export missing'); }"
+
+      - name: Create release assets
+        env:
+          RELEASE_TAG: ${{ github.event.release.tag_name || github.event.inputs.tag || format('snapshot-{0}', github.sha) }}
+        run: |
+          mkdir -p release-assets
+          tar -czf "release-assets/workout-planner-client-${RELEASE_TAG}.tar.gz" -C core dist/client
+          tar -czf "release-assets/workout-planner-server-${RELEASE_TAG}.tar.gz" -C core dist/server
+
+      - name: Upload CI artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: workout-planner-release-assets
+          path: release-assets/*.tar.gz
+
+  upload-to-release:
+    if: github.event_name == 'release' || github.event_name == 'workflow_dispatch'
+    needs: build-test-package
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download packaged assets
+        uses: actions/download-artifact@v4
+        with:
+          name: workout-planner-release-assets
+          path: release-assets
+
+      - name: Upload assets to GitHub release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_TAG: ${{ github.event.release.tag_name || github.event.inputs.tag }}
+        run: gh release upload "$RELEASE_TAG" release-assets/*.tar.gz --clobber
