@@ -53,13 +53,35 @@ The server side uses Gemini (`gemini-3.1-pro-preview`) and strict JSON output ru
 
 ## Installation
 
+### Local development (this repository)
+
 From `core/`:
 
 ```bash
 npm install
 ```
 
-For consumers (after publish), install the package and import only the environment-specific path:
+### Install from GitHub release assets with npm
+
+You can install the prebuilt client/server release tarballs directly from a GitHub Release.
+
+Server bundle:
+
+```bash
+npm install "https://github.com/tony-div/react-native-workout-planner/releases/download/v0.1.0/workout-planner-server-v0.1.0.tar.gz"
+```
+
+Client bundle:
+
+```bash
+npm install "https://github.com/tony-div/react-native-workout-planner/releases/download/v0.1.0/workout-planner-client-v0.1.0.tar.gz"
+```
+
+Use the same URL pattern for newer versions by changing the tag and filename (for example `v0.1.1`).
+
+### Imports
+
+Import only the environment-specific entry point:
 
 ```ts
 import { generatePlan } from '@react-native-workout-planner/client';
