@@ -14,6 +14,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import Clipboard from '@react-native-clipboard/clipboard';
 
 type Goal = 'strength' | 'hypertrophy' | 'other';
 type Level = 'beginner' | 'intermediate' | 'advanced';
@@ -32,6 +33,7 @@ function App() {
   const [equipmentAvailable, setEquipmentAvailable] = useState('barbell, dumbbell, bodyweight');
   const [genderOption, setGenderOption] = useState<GenderOption>('not_specified');
   const [bodyWeight, setBodyWeight] = useState('');
+  const [height, setHeight] = useState('');
   const [age, setAge] = useState('');
   const [trainingAge, setTrainingAge] = useState('');
   const [injuries, setInjuries] = useState('');
@@ -57,6 +59,7 @@ function App() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [plan, setPlan] = useState<WorkoutPlan | null>(null);
+  const [copied, setCopied] = useState(false);
   const selectedGender = resolveGenderValue(genderOption);
 
   useEffect(() => {
@@ -90,6 +93,7 @@ function App() {
     const demographics: Record<string, unknown> = {};
     if (selectedGender) demographics.gender = selectedGender;
     if (bodyWeight.trim()) demographics.bodyWeight = Number(bodyWeight);
+    if (height.trim()) demographics.height = Number(height);
     if (age.trim()) demographics.age = Number(age);
     if (trainingAge.trim()) demographics.trainingAge = Number(trainingAge);
     if (Object.keys(demographics).length > 0) {
@@ -159,6 +163,7 @@ function App() {
     equipmentAvailable,
     selectedGender,
     bodyWeight,
+    height,
     age,
     trainingAge,
     injuries,
@@ -226,6 +231,14 @@ function App() {
         return;
       }
       demographics.bodyWeight = parsedBodyWeight;
+    }
+    if (height.trim()) {
+      const parsedHeight = Number(height);
+      if (!Number.isFinite(parsedHeight) || parsedHeight < 1) {
+        setError('Height must be a number greater than 0 when provided.');
+        return;
+      }
+      demographics.height = parsedHeight;
     }
     if (age.trim()) {
       const parsedAge = Number(age);
@@ -339,9 +352,9 @@ function App() {
         return;
       }
       const parsedSets = parsedSetsResult.sets;
-      if (parsedSets.length === 0) {
+      if (!parsedSets) {
         setError(
-          'Add at least one set in current plan exercise sets (format: setNumber,reps,targetWeightKg|none,targetRpe,restSeconds).',
+          'Add exercise sets in format: sets,weight,reps,rest,targetRpe (e.g. 3,80,10,90,8).',
         );
         return;
       }
@@ -398,6 +411,54 @@ function App() {
       setError(e instanceof Error ? e.message : 'Failed to generate workout plan.');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const formatPlanHumanReadable = (p: WorkoutPlan): string => {
+    const lines: string[] = [];
+    lines.push(`Workout Plan: ${p.planName}`);
+    lines.push(`Primary Goal: ${p.primaryGoal}`);
+    lines.push(`Training Level: ${p.trainingLevel}`);
+    lines.push(`Days Per Week: ${p.daysPerWeek}`);
+    lines.push(`Duration: ${p.durationWeeks ? `${p.durationWeeks} weeks` : 'Not specified'}`);
+    lines.push('');
+    lines.push(`Rationale: ${p.rationale}`);
+    lines.push(`Inter-set Recovery: ${p.interSetRecoveryPolicy}`);
+    lines.push('');
+
+    if (p.progressiveOverload.length > 0) {
+      lines.push('Progressive Overload:');
+      for (const rule of p.progressiveOverload) {
+        lines.push(`  - ${rule.ruleName}: ${rule.description}`);
+      }
+      lines.push('');
+    }
+
+    for (const day of p.days) {
+      lines.push(`Day ${day.dayLabel}: ${day.focus}`);
+      if (day.warmup && day.warmup.length > 0) {
+        lines.push('  Warmup:');
+        for (const w of day.warmup) {
+          lines.push(`    - ${w}`);
+        }
+      }
+      for (const ex of day.exercises) {
+        const { sets, weight, reps, rest, targetRpe } = ex.sets;
+        const weightStr = weight > 0 ? `${weight} kg` : 'bodyweight';
+        lines.push(`  ${ex.exerciseName} (${ex.equipment})${ex.notes ? ` - ${ex.notes}` : ''}`);
+        lines.push(`    ${sets}×${reps} @ ${weightStr}, RPE ${targetRpe}, rest ${rest}s`);
+      }
+      lines.push('');
+    }
+
+    return lines.join('\n');
+  };
+
+  const onCopy = () => {
+    if (plan) {
+      Clipboard.setString(formatPlanHumanReadable(plan));
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
     }
   };
 
@@ -493,6 +554,14 @@ function App() {
             onChangeText={setBodyWeight}
             keyboardType="decimal-pad"
             placeholder="Body weight (kg)"
+            style={styles.input}
+          />
+          <Text style={styles.label}>Height (cm)</Text>
+          <TextInput
+            value={height}
+            onChangeText={setHeight}
+            keyboardType="decimal-pad"
+            placeholder="Height (cm)"
             style={styles.input}
           />
           <Text style={styles.label}>Age</Text>
@@ -704,14 +773,12 @@ function App() {
                 style={styles.input}
               />
               <Text style={styles.label}>Exercise sets</Text>
-              <Text style={styles.helpText}>One set per line: setNumber,reps,targetWeightKg|none,targetRpe,restSeconds</Text>
+              <Text style={styles.helpText}>Format: sets,weight,reps,rest,targetRpe (e.g. 3,80,10,90,8)</Text>
               <TextInput
                 value={currentPlanExerciseSets}
                 onChangeText={setCurrentPlanExerciseSets}
-                placeholder={"1,5,80,8,150\n2,5,82.5,8,150\n3,5,85,9,180"}
-                multiline
-                textAlignVertical="top"
-                style={[styles.input, styles.multilineInput]}
+                placeholder={"3,80,10,90,8"}
+                style={styles.input}
               />
             </View>
           ) : null}
@@ -730,7 +797,14 @@ function App() {
         </View>
 
         <View style={styles.card}>
-          <Text style={styles.label}>Server response</Text>
+          <View style={styles.labelRow}>
+            <Text style={styles.label}>Server response</Text>
+            {plan ? (
+              <TouchableOpacity style={styles.copyButton} onPress={onCopy}>
+                <Text style={styles.copyButtonText}>{copied ? 'Copied!' : 'Copy'}</Text>
+              </TouchableOpacity>
+            ) : null}
+          </View>
           <Text style={styles.code}>
             {plan ? JSON.stringify(plan, null, 2) : 'No plan yet. Submit request to test end-to-end behavior.'}
           </Text>
@@ -850,6 +924,23 @@ const styles = StyleSheet.create({
     color: '#9a1f1f',
     fontWeight: '600',
   },
+  labelRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  copyButton: {
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#1f6b3a',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+  },
+  copyButtonText: {
+    color: '#1f6b3a',
+    fontSize: 12,
+    fontWeight: '700',
+  },
   code: {
     fontFamily: Platform.select({ ios: 'Menlo', android: 'monospace' }),
     fontSize: 12,
@@ -912,55 +1003,49 @@ function parseProgressiveOverload(value: string): WorkoutPlan['progressiveOverlo
 }
 
 function parseCurrentPlanSets(value: string): WorkoutPlan['days'][number]['exercises'][number]['sets'] {
-  return parseCurrentPlanSetsStrict(value).sets;
+  return parseCurrentPlanSetsStrict(value).sets!;
 }
 
 function parseCurrentPlanSetsStrict(value: string): {
-  sets: WorkoutPlan['days'][number]['exercises'][number]['sets'];
+  sets: WorkoutPlan['days'][number]['exercises'][number]['sets'] | null;
   error: string | null;
 } {
-  const parsedLines = parseLines(value);
-  const sets: WorkoutPlan['days'][number]['exercises'][number]['sets'] = [];
-
-  for (let index = 0; index < parsedLines.length; index += 1) {
-    const line = parsedLines[index];
-    const parts = line.split(',').map(part => part.trim());
-    if (parts.length !== 5) {
-      return {
-        sets: [],
-        error:
-          `Invalid set format on line ${index + 1}. ` +
-          'Use: setNumber,reps,targetWeightKg|none,targetRpe,restSeconds',
-      };
-    }
-
-    const setNumber = Number(parts[0]);
-    const reps = Number(parts[1]);
-    const targetWeightRaw = parts[2].toLowerCase();
-    const targetWeightKg = targetWeightRaw === 'none' ? null : Number(parts[2]);
-    const targetRpe = Number(parts[3]);
-    const restSeconds = Number(parts[4]);
-
-    if (!Number.isInteger(setNumber) || setNumber < 1) {
-      return { sets: [], error: `Set line ${index + 1}: setNumber must be an integer >= 1.` };
-    }
-    if (!Number.isInteger(reps) || reps < 1 || reps > 30) {
-      return { sets: [], error: `Set line ${index + 1}: reps must be an integer between 1 and 30.` };
-    }
-    if (!(targetWeightKg === null || (Number.isFinite(targetWeightKg) && targetWeightKg >= 0))) {
-      return { sets: [], error: `Set line ${index + 1}: targetWeightKg must be a number >= 0 or "none".` };
-    }
-    if (!Number.isFinite(targetRpe) || targetRpe < 5 || targetRpe > 10) {
-      return { sets: [], error: `Set line ${index + 1}: targetRpe must be between 5 and 10.` };
-    }
-    if (!Number.isInteger(restSeconds) || restSeconds < 20 || restSeconds > 360) {
-      return { sets: [], error: `Set line ${index + 1}: restSeconds must be an integer between 20 and 360.` };
-    }
-
-    sets.push({ setNumber, reps, targetWeightKg, targetRpe, restSeconds });
+  const line = value.trim();
+  if (!line) {
+    return { sets: null, error: null };
   }
 
-  return { sets, error: null };
+  const parts = line.split(',').map(part => part.trim());
+  if (parts.length !== 5) {
+    return {
+      sets: null,
+      error: 'Use format: sets,weight,reps,rest,targetRpe (e.g. 3,80,10,90,8)',
+    };
+  }
+
+  const sets = Number(parts[0]);
+  const weight = Number(parts[1]);
+  const reps = Number(parts[2]);
+  const rest = Number(parts[3]);
+  const targetRpe = Number(parts[4]);
+
+  if (!Number.isInteger(sets) || sets < 1) {
+    return { sets: null, error: 'sets must be an integer >= 1.' };
+  }
+  if (!Number.isFinite(weight) || weight < 0) {
+    return { sets: null, error: 'weight must be a number >= 0 (0 for bodyweight).' };
+  }
+  if (!Number.isInteger(reps) || reps < 1 || reps > 30) {
+    return { sets: null, error: 'reps must be an integer between 1 and 30.' };
+  }
+  if (!Number.isFinite(rest) || rest < 20 || rest > 360) {
+    return { sets: null, error: 'rest must be a number between 20 and 360.' };
+  }
+  if (!Number.isFinite(targetRpe) || targetRpe < 5 || targetRpe > 10) {
+    return { sets: null, error: 'targetRpe must be between 5 and 10.' };
+  }
+
+  return { sets: { sets, weight, reps, rest, targetRpe }, error: null };
 }
 
 function hasValidManualCurrentPlanForPreview(value: Record<string, unknown>): boolean {
@@ -979,7 +1064,7 @@ function hasValidManualCurrentPlanForPreview(value: Record<string, unknown>): bo
     : undefined;
   const exerciseName = typeof firstExercise?.exerciseName === 'string' ? firstExercise.exerciseName.trim() : '';
   const equipment = typeof firstExercise?.equipment === 'string' ? firstExercise.equipment.trim() : '';
-  const sets = Array.isArray(firstExercise?.sets) ? firstExercise.sets : [];
+  const sets = firstExercise?.sets;
 
   const overload = Array.isArray(value.progressiveOverload) ? value.progressiveOverload : [];
 
@@ -995,7 +1080,8 @@ function hasValidManualCurrentPlanForPreview(value: Record<string, unknown>): bo
     Boolean(dayFocus) &&
     Boolean(exerciseName) &&
     Boolean(equipment) &&
-    sets.length > 0
+    typeof sets === 'object' &&
+    sets !== null
   );
 }
 

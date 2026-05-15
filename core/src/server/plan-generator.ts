@@ -1,12 +1,26 @@
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { GoogleGenerativeAI, GoogleGenerativeAIFetchError } from '@google/generative-ai';
 import type { ResponseSchema } from '@google/generative-ai';
 
 import { normalizeWorkoutRequest } from '../shared/normalize';
 import { isWorkoutPlan, planResponseSchemaText } from '../shared/schemas';
 import type { ServerConfig, WorkoutPlan, WorkoutRequest } from '../shared/types';
-import { buildSystemPrompt } from './prompt';
+import { buildSystemPrompt, buildUserPrompt } from './prompt';
 
 const GEMINI_MODEL = 'gemma-4-31b-it';
+
+const RETRY_MAX_ATTEMPTS = 3;
+const RETRY_BASE_DELAY_MS = 1000;
+
+async function delay(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function isRetryableError(error: unknown): boolean {
+  if (error instanceof GoogleGenerativeAIFetchError) {
+    return error.status !== undefined && error.status >= 500;
+  }
+  return false;
+}
 
 function stripUnsupportedResponseSchemaFields(value: unknown): unknown {
   if (Array.isArray(value)) {
@@ -85,17 +99,35 @@ export function createPlanGenerator(config: ServerConfig) {
 
   return async function generateWorkoutPlan(request: WorkoutRequest): Promise<WorkoutPlan> {
     const normalized = normalizeWorkoutRequest(request);
-    const prompt = buildSystemPrompt(normalized);
+    const systemPrompt = buildSystemPrompt(normalized);
+    const userPrompt = buildUserPrompt(normalized);
 
-    const result = await model.generateContent({
-      contents: [{ role: 'user', parts: [{ text: prompt }] }],
-      generationConfig: {
-        responseMimeType: 'application/json',
-        responseSchema: toGeminiResponseSchema(planResponseSchemaText),
-      },
-    });
+    let lastError: Error | undefined;
 
-    const jsonText = extractTextContent(result);
-    return parseWorkoutPlanResponse(jsonText);
+    for (let attempt = 1; attempt <= RETRY_MAX_ATTEMPTS; attempt++) {
+      try {
+        const result = await model.generateContent({
+          systemInstruction: systemPrompt,
+          contents: [{ role: 'user', parts: [{ text: userPrompt }] }],
+          generationConfig: {
+            responseMimeType: 'application/json',
+            responseSchema: toGeminiResponseSchema(planResponseSchemaText),
+          },
+        });
+
+        const jsonText = extractTextContent(result);
+        return parseWorkoutPlanResponse(jsonText);
+      } catch (error) {
+        lastError = error as Error;
+        if (attempt < RETRY_MAX_ATTEMPTS && isRetryableError(error)) {
+          const backoff = RETRY_BASE_DELAY_MS * 2 ** (attempt - 1);
+          await delay(backoff);
+          continue;
+        }
+        throw error;
+      }
+    }
+
+    throw lastError;
   };
 }

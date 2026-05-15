@@ -22,18 +22,12 @@ const samplePlan = {
         {
           exerciseName: 'Goblet Squat',
           equipment: 'dumbbell',
-          sets: [
-            { setNumber: 1, reps: 10, targetWeightKg: 20, targetRpe: 7, restSeconds: 90 },
-            { setNumber: 2, reps: 10, targetWeightKg: 20, targetRpe: 7, restSeconds: 90 },
-          ],
+          sets: { sets: 2, weight: 20, reps: 10, rest: 90, targetRpe: 7 },
         },
         {
           exerciseName: 'Push Up',
           equipment: 'bodyweight',
-          sets: [
-            { setNumber: 1, reps: 8, targetWeightKg: null, targetRpe: 8, restSeconds: 60 },
-            { setNumber: 2, reps: 8, targetWeightKg: null, targetRpe: 8, restSeconds: 60 },
-          ],
+          sets: { sets: 2, weight: 0, reps: 8, rest: 60, targetRpe: 8 },
         },
       ],
     },

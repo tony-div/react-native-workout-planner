@@ -22,6 +22,7 @@ export const workoutRequestSchema = {
       properties: {
         gender: { type: 'string' },
         bodyWeight: { type: 'number', minimum: 1 },
+        height: { type: 'number', minimum: 1 },
         age: { type: 'number', minimum: 1 },
         trainingAge: { type: 'number', minimum: 0 },
       },
@@ -56,10 +57,10 @@ export const workoutPlanSchema = {
   ],
   properties: {
     planName: { type: 'string' },
-    primaryGoal: { type: 'string', enum: ['hypertrophy', 'strength', 'general_fitness'] },
+    primaryGoal: { type: 'string', enum: ['hypertrophy', 'strength', 'other'] },
     trainingLevel: { type: 'string', enum: ['beginner', 'intermediate', 'advanced'] },
     daysPerWeek: { type: 'number', minimum: 1, maximum: 7 },
-    durationWeeks: { anyOf: [{ type: 'number', minimum: 1 }, { type: 'null' }] },
+    durationWeeks: { type: 'number', minimum: 1 },
     rationale: { type: 'string' },
     interSetRecoveryPolicy: { type: 'string' },
     progressiveOverload: {
@@ -98,21 +99,15 @@ export const workoutPlanSchema = {
                 equipment: { type: 'string' },
                 notes: { type: 'string' },
                 sets: {
-                  type: 'array',
-                  minItems: 1,
-                  items: {
-                    type: 'object',
-                    additionalProperties: false,
-                    required: ['setNumber', 'reps', 'targetWeightKg', 'targetRpe', 'restSeconds'],
-                    properties: {
-                      setNumber: { type: 'number', minimum: 1 },
-                      reps: { type: 'number', minimum: 1, maximum: 30 },
-                      targetWeightKg: {
-                        anyOf: [{ type: 'number', minimum: 0 }, { type: 'null' }],
-                      },
-                      targetRpe: { type: 'number', minimum: 5, maximum: 10 },
-                      restSeconds: { type: 'number', minimum: 20, maximum: 360 },
-                    },
+                  type: 'object',
+                  additionalProperties: false,
+                  required: ['sets', 'weight', 'reps', 'rest', 'targetRpe'],
+                  properties: {
+                    sets: { type: 'number', minimum: 1 },
+                    weight: { type: 'number', minimum: 0 },
+                    reps: { type: 'number', minimum: 1, maximum: 30 },
+                    rest: { type: 'number', minimum: 20, maximum: 360 },
+                    targetRpe: { type: 'number', minimum: 5, maximum: 10 },
                   },
                 },
               },

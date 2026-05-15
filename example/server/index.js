@@ -20,9 +20,16 @@ app.use((req, res, next) => {
     `[server][${reqId}] ${req.method} ${req.path} request debugHeader=${req.headers['x-debug-request-id'] || 'none'} query=${JSON.stringify(req.query)} body=${JSON.stringify(req.body)}\n`,
   );
 
+  const originalJson = res.json.bind(res);
+  res.json = function (body) {
+    res.bodyJson = body;
+    return originalJson(body);
+  };
+
   res.on('finish', () => {
+    const body = res.statusCode >= 400 && res.bodyJson ? JSON.stringify(res.bodyJson) : '';
     process.stdout.write(
-      `[server][${reqId}] ${req.method} ${req.path} response status=${res.statusCode} elapsedMs=${Date.now() - startedAt}\n`,
+      `[server][${reqId}] ${req.method} ${req.path} response status=${res.statusCode} elapsedMs=${Date.now() - startedAt}${body ? ` body=${body}` : ''}\n`,
     );
   });
 

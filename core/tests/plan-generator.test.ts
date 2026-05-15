@@ -22,10 +22,7 @@ const validPlanJson = JSON.stringify({
         {
           exerciseName: 'Back Squat',
           equipment: 'barbell',
-          sets: [
-            { setNumber: 1, reps: 5, targetWeightKg: 120, targetRpe: 8, restSeconds: 210 },
-            { setNumber: 2, reps: 5, targetWeightKg: 120, targetRpe: 8, restSeconds: 210 },
-          ],
+          sets: { sets: 2, weight: 120, reps: 5, rest: 210, targetRpe: 8 },
         },
       ],
     },

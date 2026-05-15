@@ -4,13 +4,23 @@ import { createWorkoutHandler } from '../src/server/handler';
 
 const mockGenerateContent = jest.fn();
 
-jest.mock('@google/generative-ai', () => ({
-  GoogleGenerativeAI: jest.fn().mockImplementation(() => ({
-    getGenerativeModel: jest.fn().mockReturnValue({
-      generateContent: mockGenerateContent,
-    }),
-  })),
-}));
+jest.mock('@google/generative-ai', () => {
+  const FakeFetchError = class extends Error {
+    status?: number;
+    constructor(message: string, status?: number) {
+      super(message);
+      this.status = status;
+    }
+  };
+  return {
+    GoogleGenerativeAI: jest.fn().mockImplementation(() => ({
+      getGenerativeModel: jest.fn().mockReturnValue({
+        generateContent: mockGenerateContent,
+      }),
+    })),
+    GoogleGenerativeAIFetchError: FakeFetchError,
+  };
+});
 
 const samplePlan = {
   planName: '4-Day Strength Builder',
@@ -34,82 +44,22 @@ const samplePlan = {
         {
           exerciseName: 'Back Squat',
           equipment: 'barbell',
-          sets: [
-            {
-              setNumber: 1,
-              reps: 5,
-              targetWeightKg: 100,
-              targetRpe: 8,
-              restSeconds: 180,
-            },
-            {
-              setNumber: 2,
-              reps: 5,
-              targetWeightKg: 100,
-              targetRpe: 8,
-              restSeconds: 180,
-            },
-          ],
+          sets: { sets: 2, weight: 100, reps: 5, rest: 180, targetRpe: 8 },
         },
         {
           exerciseName: 'Romanian Deadlift',
           equipment: 'barbell',
-          sets: [
-            {
-              setNumber: 1,
-              reps: 8,
-              targetWeightKg: 80,
-              targetRpe: 8,
-              restSeconds: 120,
-            },
-            {
-              setNumber: 2,
-              reps: 8,
-              targetWeightKg: 80,
-              targetRpe: 8,
-              restSeconds: 120,
-            },
-          ],
+          sets: { sets: 2, weight: 80, reps: 8, rest: 120, targetRpe: 8 },
         },
         {
           exerciseName: 'Leg Press',
           equipment: 'machines',
-          sets: [
-            {
-              setNumber: 1,
-              reps: 10,
-              targetWeightKg: null,
-              targetRpe: 8,
-              restSeconds: 90,
-            },
-            {
-              setNumber: 2,
-              reps: 10,
-              targetWeightKg: null,
-              targetRpe: 8,
-              restSeconds: 90,
-            },
-          ],
+          sets: { sets: 2, weight: 0, reps: 10, rest: 90, targetRpe: 8 },
         },
         {
           exerciseName: 'Calf Raise',
           equipment: 'machines',
-          sets: [
-            {
-              setNumber: 1,
-              reps: 12,
-              targetWeightKg: null,
-              targetRpe: 8,
-              restSeconds: 60,
-            },
-            {
-              setNumber: 2,
-              reps: 12,
-              targetWeightKg: null,
-              targetRpe: 8,
-              restSeconds: 60,
-            },
-          ],
+          sets: { sets: 2, weight: 0, reps: 12, rest: 60, targetRpe: 8 },
         },
       ],
     },

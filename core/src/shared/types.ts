@@ -3,6 +3,7 @@ export type TrainingLevel = 'beginner' | 'intermediate' | 'advanced';
 export interface Demographics {
   gender?: string;
   bodyWeight?: number;
+  height?: number;
   age?: number;
   trainingAge: number;
 }
@@ -12,19 +13,19 @@ export interface Limitations {
   mobilityDifficulties?: string[];
 }
 
-export interface WorkoutSet {
-  setNumber: number;
+export interface ExerciseSets {
+  sets: number;
+  weight: number;
   reps: number;
-  targetWeightKg: number | null;
+  rest: number;
   targetRpe: number;
-  restSeconds: number;
 }
 
 export interface ExercisePrescription {
   exerciseName: string;
   equipment: string;
   notes?: string;
-  sets: WorkoutSet[];
+  sets: ExerciseSets;
 }
 
 export interface WorkoutDay {
@@ -60,6 +61,7 @@ export interface WorkoutRequest {
   demographics?: {
     gender?: string;
     bodyWeight?: number;
+    height?: number;
     age?: number;
     trainingAge?: number;
   };
@@ -84,6 +86,7 @@ export interface NormalizedWorkoutRequest {
 
 export interface ServerConfig {
   geminiApiKey: string;
+  geminiModel?: string;
 }
 
 export interface ClientConfig {

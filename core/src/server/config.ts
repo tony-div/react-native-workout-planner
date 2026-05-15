@@ -17,7 +17,7 @@ export function createServerConfigFromEnv(env: NodeJS.ProcessEnv = process.env):
   if (!geminiApiKey) {
     throw new Error('Missing GEMINI_API_KEY environment variable');
   }
-  return { geminiApiKey };
+  return { geminiApiKey, geminiModel: env.GEMINI_MODEL };
 }
 
 export function createClientConfigFromEnv(env: NodeJS.ProcessEnv = process.env): ClientConfig {

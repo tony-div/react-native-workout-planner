@@ -35,6 +35,7 @@ export function normalizeWorkoutRequest(request: WorkoutRequest): NormalizedWork
     demographics: {
       gender: request.demographics?.gender,
       bodyWeight: request.demographics?.bodyWeight,
+      height: request.demographics?.height,
       age: request.demographics?.age,
       trainingAge: request.demographics?.trainingAge ?? 0,
     },
