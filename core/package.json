@@ -1,6 +1,6 @@
 {
   "name": "@react-native-workout-planner",
-  "version": "1.0.1",
+  "version": "1.1.0",
   "description": "Personalized resistance training planner for React Native clients and Node servers",
   "main": "./dist/server/index.js",
   "types": "./dist/server/index.d.ts",

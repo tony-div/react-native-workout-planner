@@ -8,16 +8,88 @@ export interface InitEnvOptions {
   overwrite?: boolean;
 }
 
-const DEFAULT_ENV_TEMPLATE = ['GEMINI_API_KEY=your_gemini_api_key_here', 'API_BASE_URL=http://localhost:3000'].join(
-  '\n',
-);
+export const DEFAULT_EXERCISE_LIST = [
+  'Push-Up',
+  'Pike Push-Up',
+  'Dumbbell Shoulder Press',
+  'Dumbbell Lateral Raise',
+  'Cable Shoulder Press',
+  'Face Pull',
+  'Chin-Up',
+  'Underhand Pull-Up',
+  'Dumbbell Curl',
+  'Hammer Curl',
+  'Cable Curl',
+  'Rope Cable Curl',
+  'Bench Dip',
+  'Diamond Push-Up',
+  'Dumbbell Overhead Extension',
+  'Dumbbell Kickback',
+  'Cable Pushdown',
+  'Rope Pushdown',
+  'Dead Hang',
+  'Fingertip Plank',
+  'Dumbbell Wrist Curl',
+  'Reverse Dumbbell Curl',
+  'Cable Wrist Curl',
+  'Rope Hammer Curl',
+  'Wide Push-Up',
+  'Flat Dumbbell Bench Press',
+  'Dumbbell Fly',
+  'Cable Chest Press',
+  'Cable Fly',
+  'Crunch',
+  'Plank',
+  'Weighted Crunch',
+  'Dumbbell Side Bend',
+  'Cable Crunch',
+  'Cable Woodchopper',
+  'Pull-Up',
+  'Inverted Row',
+  'Dumbbell Row',
+  'One-Arm Dumbbell Row',
+  'Lat Pulldown',
+  'Seated Cable Row',
+  'Plank Shoulder Tap',
+  'Dumbbell Shrug',
+  'Upright Row',
+  'Cable Shrug',
+  'Superman Hold',
+  'Bird Dog',
+  'Deadlift',
+  'Good Morning',
+  'Cable Pull Through',
+  'Cable Deadlift',
+  'Air Squat',
+  'Forward Lunge',
+  'Goblet Squat',
+  'Dumbbell Lunge',
+  'Cable Squat',
+  'Cable Leg Extension',
+  'Standing Calf Raise',
+  'Jump Rope',
+  'Dumbbell Calf Raise',
+  'Seated Dumbbell Calf Raise',
+  'Cable Standing Calf Raise',
+  'Cable Toe Press',
+];
+
+const DEFAULT_ENV_TEMPLATE = [
+  'GEMINI_API_KEY=your_gemini_api_key_here',
+  'API_BASE_URL=http://localhost:3000',
+  '# EXERCISE_LIST: comma-separated; leave empty to use built-in default list',
+  'EXERCISE_LIST=',
+].join('\n');
 
 export function createServerConfigFromEnv(env: NodeJS.ProcessEnv = process.env): ServerConfig {
   const geminiApiKey = env.GEMINI_API_KEY;
   if (!geminiApiKey) {
     throw new Error('Missing GEMINI_API_KEY environment variable');
   }
-  return { geminiApiKey, geminiModel: env.GEMINI_MODEL };
+  const exerciseList = env.EXERCISE_LIST
+    ? env.EXERCISE_LIST.split(',').map((e) => e.trim()).filter(Boolean)
+    : DEFAULT_EXERCISE_LIST;
+  return { geminiApiKey, geminiModel: env.GEMINI_MODEL, exerciseList };
 }
 
 export function createClientConfigFromEnv(env: NodeJS.ProcessEnv = process.env): ClientConfig {

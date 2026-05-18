@@ -99,7 +99,7 @@ export function createPlanGenerator(config: ServerConfig) {
 
   return async function generateWorkoutPlan(request: WorkoutRequest): Promise<WorkoutPlan> {
     const normalized = normalizeWorkoutRequest(request);
-    const systemPrompt = buildSystemPrompt(normalized);
+    const systemPrompt = buildSystemPrompt({ request: normalized, exerciseList: config.exerciseList });
     const userPrompt = buildUserPrompt(normalized);
 
     let lastError: Error | undefined;

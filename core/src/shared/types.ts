@@ -87,6 +87,7 @@ export interface NormalizedWorkoutRequest {
 export interface ServerConfig {
   geminiApiKey: string;
   geminiModel?: string;
+  exerciseList?: string[];
 }
 
 export interface ClientConfig {
